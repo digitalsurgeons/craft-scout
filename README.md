@@ -65,25 +65,6 @@ return [
     'batch_size' => 1000,
 
     /*
-     * The Algolia Application ID, this id can be found in your Algolia Account
-     * https://www.algolia.com/api-keys. This id is used to update records.
-     */
-    'application_id' => '$ALGOLIA_APPLICATION_ID',
-
-    /*
-     * The Algolia Admin API key, this key can be found in your Algolia Account
-     * https://www.algolia.com/api-keys. This key is used to update records.
-     */
-    'admin_api_key'  => '$ALGOLIA_ADMIN_API_KEY',
-
-    /*
-     * The Algolia search API key, this key can be found in your Algolia Account
-     * https://www.algolia.com/api-keys. This search key is not used in Scout
-     * but can be used through the Scout variable in your template files.
-     */
-    'search_api_key' => '$ALGOLIA_SEARCH_API_KEY', //optional
-    
-    /*
      * A collection of indices that Scout should sync to, these can be configured
      * by using the \rias\scout\ScoutIndex::create('IndexName') command. Each
      * index should define an ElementType, criteria and a transformer.
@@ -119,8 +100,7 @@ return [
             /*
              * You can use this to define index settings that get synced when you call
              * the ./craft scout/settings/update console command. This way you can
-             * keep your index settings in source control. The IndexSettings
-             * object provides autocompletion for all Algolia's settings
+             * keep your index settings in source control.
             */
             ->indexSettings(
                 \rias\scout\IndexSettings::create()
@@ -153,7 +133,7 @@ This function accepts an `ElementQuery` and should also return an `ElementQuery`
 ```
 
 #### `->transformer(callable|string|array|TransformerAbstract $transformer)`
-The [transformer](http://fractal.thephpleague.com/transformers/) that should be used to define the data that should be sent to Algolia for each element. If you don’t set this, the default transformer will be used, which includes all of the element’s direct attribute values, but no custom field values.
+The [transformer](http://fractal.thephpleague.com/transformers/) that should be used to define the data that should be sent for each element. If you don’t set this, the default transformer will be used, which includes all of the element’s direct attribute values, but no custom field values.
 
 ```php
 // Can be set to a function
@@ -191,7 +171,7 @@ class MyTransformerClassName extends TransformerAbstract
 ```
 
 #### `->splitElementsOn(array $keys)`
-[For long documents](https://www.algolia.com/doc/guides/sending-and-managing-data/prepare-your-data/how-to/indexing-long-documents/) it is advised to divide the element into multiple rows to keep each row within row data size. This can be done using `splitElementsOn()`.
+It is advised to divide the element into multiple rows to keep each row within row data size. This can be done using `splitElementsOn()`.
 > Make sure to return an array in your transformer for these keys.
 
 ```php
@@ -205,9 +185,8 @@ class MyTransformerClassName extends TransformerAbstract
 
 #### `->indexSettings(IndexSettings $settings)`
 
-You can use this to define index settings that get synced when you call the `./craft scout/settings/update` console command. 
-This way you can keep your index settings in source control. 
-The IndexSettings object provides autocompletion for all Algolia's settings
+You can use this to define index settings that get synced when you call the `./craft scout/settings/update` console command.
+This way you can keep your index settings in source control.
 
 ```php
 ->indexSettings(
@@ -217,13 +196,10 @@ The IndexSettings object provides autocompletion for all Algolia's settings
 ```
 
 ## Twig variables
-You can access the Algolia settings set in your config file through the following Twig variables.
+You can access settings set in your config file through the following Twig variables.
 
 ```twig
 {{ craft.scout.pluginName }}
-{{ craft.scout.algoliaApplicationId }}
-{{ craft.scout.algoliaAdminApiKey }}
-{{ craft.scout.algoliaSearchApiKey }}
 ```
 
 ## Console commands
@@ -265,12 +241,12 @@ ScoutIndex::create()
     ->transform(function (Entry $entry) {
         // Check if entry is valid for indexing
         $isValid = yourCustomValidation($entry);
-        
+
         // If entry fails validation, return empty array
         if (! $isValid) {
             return [];
         }
-    
+
         // Return normal data attributes
         return [
             'name' => $entry->title,

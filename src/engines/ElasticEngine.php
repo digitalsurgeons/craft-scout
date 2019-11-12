@@ -2,34 +2,34 @@
 
 namespace rias\scout\engines;
 
-use Algolia\AlgoliaSearch\SearchClient as Algolia;
+use Elastic\AppSearch\Client\Client;
+use Elastic\OpenApi\Codegen\Exception\NotFoundException;
 use craft\base\Element;
 use rias\scout\IndexSettings;
 use rias\scout\ScoutIndex;
 use Tightenco\Collect\Support\Arr;
 use Tightenco\Collect\Support\Collection;
 
-class AlgoliaEngine extends Engine
+class ElasticEngine extends Engine
 {
-    /** @var \Algolia\AlgoliaSearch\SearchClient */
-    protected $algolia;
+    /** @var \Elastic\AppSearch\Client\Client */
+    protected $client;
 
     /** @var \rias\scout\ScoutIndex */
     public $scoutIndex;
 
-    public function __construct(ScoutIndex $scoutIndex, Algolia $algolia)
+    public function __construct(ScoutIndex $scoutIndex, Client $client)
     {
         $this->scoutIndex = $scoutIndex;
-        $this->algolia = $algolia;
+        $this->client = $client;
+
+        try {
+            $this->client->getEngine($this->scoutIndex->indexName);
+        } catch (NotFoundException $e) {
+            $this->client->createEngine($this->scoutIndex->indexName);
+        }
     }
 
-    /**
-     * Update the given model in the index.
-     *
-     * @param array|Element $elements
-     *
-     * @throws \Algolia\AlgoliaSearch\Exceptions\AlgoliaException
-     */
     public function update($elements)
     {
         $elements = new Collection(Arr::wrap($elements));
@@ -44,8 +44,7 @@ class AlgoliaEngine extends Engine
         $objects = $this->transformElements($elements);
 
         if (!empty($objects)) {
-            $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-            $index->saveObjects($objects);
+            $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
         }
     }
 
@@ -53,56 +52,38 @@ class AlgoliaEngine extends Engine
     {
         $elements = new Collection(Arr::wrap($elements));
 
-        $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-
         $objectIds = $elements->map(function ($object) {
             if ($object instanceof Element) {
                 return $object->id;
             }
 
-            return $object['distinctID'] ?? $object['objectID'];
+            return $object['distinctID'] ?? $object['id'];
         })->unique()->values()->all();
 
-        if (empty($objectIds)) {
-            return;
+        if (!empty($objectIds)) {
+            $this->client->deleteDocuments($this->scoutIndex->indexName, $objectIds);
         }
-
-        if (empty($this->scoutIndex->splitElementsOn)) {
-            return $index->deleteObjects($objectIds);
-        }
-
-        return $index->deleteBy([
-            'filters' => 'distinctID:'.implode(' OR distinctID:', $objectIds),
-        ]);
     }
 
     public function flush()
     {
-        $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-        $index->clearObjects();
+        $this->client->deleteEngine($this->scoutIndex->indexName);
     }
 
     public function updateSettings(IndexSettings $indexSettings)
     {
-        $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-        $index->setSettings($indexSettings->settings);
+        // $this->client->updateSchema($this->scoutIndex->indexName, $indexSettings->settings);
     }
 
     public function getSettings(): array
     {
-        $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-
-        return $index->getSettings();
+        // return $this->client->getSchema($this->scoutIndex->indexName);
+        return [];
     }
 
     public function getTotalRecords(): int
     {
-        $index = $this->algolia->initIndex($this->scoutIndex->indexName);
-        $response = $index->search('', [
-            'attributesToRetrieve' => null,
-        ]);
-
-        return (int) $response['nbHits'];
+        return (int) 0;
     }
 
     private function transformElements(Collection $elements): array
@@ -114,7 +95,7 @@ class AlgoliaEngine extends Engine
             }
 
             return array_merge(
-                ['objectID' => $element->id],
+                ['id' => $element->id],
                 $searchableData
             );
         })->filter()->values()->all();

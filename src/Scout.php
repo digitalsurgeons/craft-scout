@@ -2,8 +2,6 @@
 
 namespace rias\scout;
 
-use Algolia\AlgoliaSearch\Config\SearchConfig;
-use Algolia\AlgoliaSearch\SearchClient;
 use Craft;
 use craft\base\Element;
 use craft\base\Plugin;
@@ -19,6 +17,8 @@ use rias\scout\models\Settings;
 use rias\scout\utilities\ScoutUtility;
 use rias\scout\variables\ScoutVariable;
 use yii\base\Event;
+use Elastic\AppSearch\Client\Client;
+use Elastic\AppSearch\Client\ClientBuilder;
 
 class Scout extends Plugin
 {
@@ -36,6 +36,9 @@ class Scout extends Plugin
     /** @var \rias\scout\Scout */
     public static $plugin;
 
+    /** @var \Elastic\AppSearch\Client */
+    public $client;
+
     public $hasCpSettings = true;
 
     /** @var \Tightenco\Collect\Support\Collection */
@@ -47,16 +50,7 @@ class Scout extends Plugin
 
         self::$plugin = $this;
 
-        Craft::$container->setSingleton(SearchClient::class, function () {
-            $config = SearchConfig::create(
-                self::$plugin->getSettings()->getApplicationId(),
-                self::$plugin->getSettings()->getAdminApiKey()
-            );
-
-            $config->setConnectTimeout($this->getSettings()->connect_timeout);
-
-            return SearchClient::createWithConfig($config);
-        });
+        $this->client = $this->buildClient();
 
         $request = Craft::$app->getRequest();
         if ($request->getIsConsoleRequest()) {
@@ -71,6 +65,18 @@ class Scout extends Plugin
         if (self::getInstance()->is(self::EDITION_PRO)) {
             $this->registerUtility();
         }
+    }
+
+    public function buildClient()
+    {
+        $apiEndpoint = $this->getSettings()->getApiEndpoint();
+        $apiKey = $this->getSettings()->getApiKey();
+
+        if (!$apiEndpoint || !$apiKey) {
+            return;
+        }
+
+        return ClientBuilder::create($apiEndpoint, $apiKey)->build();
     }
 
     protected function createSettingsModel(): Settings

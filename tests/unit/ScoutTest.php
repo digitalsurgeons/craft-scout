@@ -117,8 +117,6 @@ class ScoutTest extends Unit
 
         $settings->validate();
 
-        $this->assertEquals('Application Id cannot be blank.', $settings->errors['application_id'][0]);
-        $this->assertEquals('Admin Api Key cannot be blank.', $settings->errors['admin_api_key'][0]);
         $this->assertEquals('Sync must be either "1" or "0".', $settings->errors['sync'][0]);
         $this->assertEquals('Queue must be either "1" or "0".', $settings->errors['queue'][0]);
         $this->assertEquals('Connect Timeout must be an integer.', $settings->errors['connect_timeout'][0]);

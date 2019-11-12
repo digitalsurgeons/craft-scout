@@ -2,7 +2,7 @@
 
 namespace rias\scout\engines;
 
-use Algolia\AlgoliaSearch\SearchClient;
+use Elastic\AppSearch\Client\Client;
 use rias\scout\IndexSettings;
 use rias\scout\ScoutIndex;
 
@@ -11,7 +11,7 @@ abstract class Engine
     /** @var ScoutIndex */
     public $scoutIndex;
 
-    abstract public function __construct(ScoutIndex $scoutIndex, SearchClient $algolia);
+    abstract public function __construct(ScoutIndex $scoutIndex, Client $client);
 
     abstract public function update($models);
 
@@ -34,14 +34,14 @@ abstract class Engine
             $splittedObjects = $this->splitObject($object);
 
             if (count($splittedObjects) <= 1) {
-                $object['distinctID'] = $object['objectID'];
+                $object['distinctID'] = $object['id'];
                 $objectsToSave[] = $object;
                 continue;
             }
 
             foreach ($splittedObjects as $part => $splittedObject) {
-                $splittedObject['distinctID'] = $splittedObject['objectID'];
-                $splittedObject['objectID'] = "{$splittedObject['objectID']}_{$part}";
+                $splittedObject['distinctID'] = $splittedObject['id'];
+                $splittedObject['id'] = "{$splittedObject['id']}_{$part}";
                 $objectsToSave[] = $splittedObject;
             }
 

@@ -5,9 +5,9 @@ namespace rias\scout\models;
 use Craft;
 use craft\base\Model;
 use Exception;
-use rias\scout\engines\AlgoliaEngine;
-use rias\scout\engines\Engine;
+use rias\scout\Scout;
 use rias\scout\ScoutIndex;
+use rias\scout\engines\ElasticEngine;
 use Tightenco\Collect\Support\Collection;
 
 class Settings extends Model
@@ -21,20 +21,17 @@ class Settings extends Model
     /** @var bool */
     public $queue = true;
 
-    /** @var string */
-    public $engine = AlgoliaEngine::class;
+    /** @var ElasticEngine[] */
+    public $engines = [];
 
     /** @var ScoutIndex[] */
     public $indices = [];
 
     /* @var string */
-    public $application_id = '';
+    public $apiEndpoint = '';
 
     /* @var string */
-    public $admin_api_key = '';
-
-    /* @var string */
-    public $search_api_key = '';
+    public $apiKey = '';
 
     /* @var int */
     public $connect_timeout = 1;
@@ -47,9 +44,19 @@ class Settings extends Model
         return [
             [['connect_timeout', 'batch_size'], 'integer'],
             [['sync', 'queue'], 'boolean'],
-            [['application_id', 'admin_api_key', 'search_api_key'], 'string'],
-            [['application_id', 'admin_api_key', 'connect_timeout'], 'required'],
+            [['apiEndpoint', 'apiKey'], 'string'],
+            [['apiEndpoint', 'apiKey', 'connect_timeout'], 'required'],
         ];
+    }
+
+    public function getApiEndpoint()
+    {
+        return Craft::parseEnv($this->apiEndpoint);
+    }
+
+    public function getApiKey()
+    {
+        return Craft::parseEnv($this->apiKey);
     }
 
     public function getIndices(): Collection
@@ -64,29 +71,12 @@ class Settings extends Model
         });
     }
 
-    public function getEngine(ScoutIndex $scoutIndex): Engine
+    public function getEngine(ScoutIndex $scoutIndex): ElasticEngine
     {
-        $engine = Craft::$container->get($this->engine, [$scoutIndex]);
-
-        if (!$engine instanceof Engine) {
-            throw new Exception("Invalid engine {$this->engine}, must implement ".Engine::class);
+        if (!isset($this->engines[$scoutIndex->indexName])) {
+            $this->engines[$scoutIndex->indexName] = new ElasticEngine($scoutIndex, Scout::$plugin->client);
         }
 
-        return $engine;
-    }
-
-    public function getApplicationId(): string
-    {
-        return Craft::parseEnv($this->application_id);
-    }
-
-    public function getAdminApiKey(): string
-    {
-        return Craft::parseEnv($this->admin_api_key);
-    }
-
-    public function getSearchApiKey(): string
-    {
-        return Craft::parseEnv($this->search_api_key);
+        return $this->engines[$scoutIndex->indexName];
     }
 }

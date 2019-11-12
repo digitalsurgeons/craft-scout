@@ -20,7 +20,7 @@ use rias\scout\engines\Engine;
 use rias\scout\jobs\MakeSearchable;
 use rias\scout\Scout;
 use rias\scout\ScoutIndex;
-use rias\scout\serializer\AlgoliaSerializer;
+use rias\scout\serializer\Serializer;
 use Tightenco\Collect\Support\Arr;
 use Tightenco\Collect\Support\Collection;
 use yii\base\Behavior;
@@ -109,7 +109,7 @@ class SearchableBehavior extends Behavior
     public function toSearchableArray(ScoutIndex $scoutIndex): array
     {
         return (new Manager())
-            ->setSerializer(new AlgoliaSerializer())
+            ->setSerializer(new Serializer())
             ->createData(new Item($this->owner, $scoutIndex->getTransformer()))
             ->toArray();
     }
