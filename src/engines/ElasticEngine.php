@@ -83,6 +83,7 @@ class ElasticEngine extends Engine
     public function flush()
     {
         $this->client->deleteEngine($this->scoutIndex->indexName);
+        $this->client->createEngine($this->scoutIndex->indexName);
     }
 
     public function updateSettings(IndexSettings $indexSettings)
