@@ -88,6 +88,7 @@ class ElasticEngine extends Engine
 
     public function updateSettings(IndexSettings $indexSettings)
     {
+        throw new \Exception('Not implemented');
         // $this->client->updateSchema($this->scoutIndex->indexName, $indexSettings->settings);
     }
 
