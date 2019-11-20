@@ -41,10 +41,25 @@ class ElasticEngine extends Engine
         if ($elements->isEmpty()) {
             return;
         }
+
         $objects = $this->transformElements($elements);
 
         if (!empty($objects)) {
-            $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
+            $indexingResults = $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
+
+            // No exception is thrown by the AppSearch object for us, so
+            // we need to look through the result array and check for
+            // errors ourselves and throw one.
+            foreach ($indexingResults as $result) {
+                if (count($result['errors'])) {
+                    // TODO: Make this a scoped exception.
+                    throw new \Exception(
+                        'Encountered errors during indexing:'
+                        . PHP_EOL
+                        . print_r($result['errors'], true)
+                    );
+                }
+            }
         }
     }
 
