@@ -4,6 +4,7 @@ namespace rias\scout\engines;
 
 use Elastic\AppSearch\Client\Client;
 use Elastic\OpenApi\Codegen\Exception\NotFoundException;
+use Elastic\AppSearch\Client\Exception\ApiRateExceededException;
 use craft\base\Element;
 use rias\scout\IndexSettings;
 use rias\scout\ScoutIndex;
@@ -45,7 +46,12 @@ class ElasticEngine extends Engine
         $objects = $this->transformElements($elements);
 
         if (!empty($objects)) {
-            $indexingResults = $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
+            try {
+                $indexingResults = $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
+            } catch (ApiRateExceededException $e) {
+                sleep($e->getRetryAfter());
+                $indexingResults = $this->client->indexDocuments($this->scoutIndex->indexName, $objects);
+            }
 
             // No exception is thrown by the AppSearch object for us, so
             // we need to look through the result array and check for
